@@ -1,18 +1,17 @@
 pipeline {
     agent any
     
-    enviourment {
-        SCANNER_HOME = tool 'sonar scanner' 
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner' 
     }
 
     stages {
-        stage('Git Cehckout') {
+        stage('Git Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/aaryangupta/Valentine-Devops-Project'
             }
         }
-    }
-
+    
         stage('Trivy check code') {
             steps {
                 sh 'trivy fs --format table -o trivy_report.html .'
@@ -22,38 +21,38 @@ pipeline {
         stage('Sonarqube analysis') {
             steps {
                 withSonarQubeEnv('sonar') {
-                    sh '$SCANNER_HOME/bin/sonar-scanner -Dsonar-projectKey=aaryan -DsonarprojectName=aaryan'
+                    sh '$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectKey=aaryan -Dsonar.projectName=aaryan '
+
                 }
             }
         }
+
         stage('Docker build') {
             steps {
-                script{
-                withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                    sh "Docker build -t aaryan22/valantine:v1 ."
+                script {
+                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
+                        sh 'docker build -t aaryan22/valantine:v1 .'
                     }
                 }
             }
         }
+
         stage('Trivy image scan') {
             steps {
-                sh 'trivy image --format json -o trivy_image_repost.json aaryan22/valantine:v1'
+                sh 'trivy image --format json -o trivy_image_report.json aaryan22/valantine:v1'
             }
         }
         
         stage('Docker push') {
             steps {
-               
-                sh 'Docker push aaryan22/valantine:v1'
-                
+                sh 'docker push aaryan22/valantine:v1'
             }
         }
+
         stage('Container creation') {
             steps {
-              
-                sh 'Docker run -d -p 8081:80 aaryan22/valantine:v1 '
-
+                sh 'docker run -d -p 8081:80 aaryan22/valantine:v1'
             }
         }
-        
+    }
 }
